@@ -13,7 +13,7 @@ export class WslExec implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'WSL Exec',
 		name: 'wslExec',
-		icon: 'file:wslExec.svg',
+		icon: 'file:WslExec.node.icon.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Executes a command in a WSL2 container',
@@ -64,6 +64,13 @@ export class WslExec implements INodeType {
 				default: false,
 				description: 'Ignores output from shell startup scripts (e.g., .bashrc)',
 			},
+			{
+				displayName: 'Split Output by Line',
+				name: 'splitOutputByLine',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to split the stdout into an array of strings, one for each line',
+			},
 		],
 	};
 
@@ -101,6 +108,7 @@ export class WslExec implements INodeType {
 			const command = this.getNodeParameter('command', i, '') as string;
 			const args = this.getNodeParameter('args', i, '') as string;
 			const ignoreStartupOutput = this.getNodeParameter('ignoreStartupOutput', i, false) as boolean;
+			const splitOutputByLine = this.getNodeParameter('splitOutputByLine', i, false) as boolean;
 
 			const START_MARKER = '---N8N_WSL_EXEC_START---';
 			const END_MARKER = '---N8N_WSL_EXEC_END---';
@@ -129,13 +137,17 @@ export class WslExec implements INodeType {
 				});
 			});
 
-			let finalStdout = stdout;
+			let finalStdout: string | string[] = stdout;
 			if (ignoreStartupOutput) {
 				const startIndex = stdout.indexOf(START_MARKER);
 				const endIndex = stdout.lastIndexOf(END_MARKER);
 				if (startIndex !== -1 && endIndex !== -1) {
 					finalStdout = stdout.substring(startIndex + START_MARKER.length, endIndex).trim();
 				}
+			}
+
+			if (splitOutputByLine) {
+				finalStdout = (finalStdout as string).split('\n').filter(line => line);
 			}
 
 			returnData.push({
