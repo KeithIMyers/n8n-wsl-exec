@@ -71,6 +71,14 @@ export class WslExec implements INodeType {
 				default: false,
 				description: 'Whether to split the stdout into an array of strings, one for each line',
 			},
+			{
+				displayName: 'Run as User',
+				name: 'runAsUser',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g., root or www-data',
+				description: 'The user to run the command as. If empty, uses the default user.',
+			},
 		],
 	};
 
@@ -109,6 +117,7 @@ export class WslExec implements INodeType {
 			const args = this.getNodeParameter('args', i, '') as string;
 			const ignoreStartupOutput = this.getNodeParameter('ignoreStartupOutput', i, false) as boolean;
 			const splitOutputByLine = this.getNodeParameter('splitOutputByLine', i, false) as boolean;
+			const runAsUser = this.getNodeParameter('runAsUser', i, '') as string;
 
 			const START_MARKER = '---N8N_WSL_EXEC_START---';
 			const END_MARKER = '---N8N_WSL_EXEC_END---';
@@ -118,7 +127,13 @@ export class WslExec implements INodeType {
 				commandToRun = `cd ${startDirectory} && echo "${START_MARKER}" && ${command} ${args}; echo "${END_MARKER}"`;
 			}
 
-			const wslProcess = spawn('wsl', ['-d', wslContainer, '-e', 'bash', '-ic', commandToRun]);
+			const wslArgs = ['-d', wslContainer];
+			if (runAsUser) {
+				wslArgs.push('-u', runAsUser);
+			}
+			wslArgs.push('-e', 'bash', '-ic', commandToRun);
+
+			const wslProcess = spawn('wsl', wslArgs);
 
 			let stdout = '';
 			let stderr = '';
