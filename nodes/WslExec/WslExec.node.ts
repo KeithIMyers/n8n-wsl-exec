@@ -1,10 +1,13 @@
-import { IExecuteFunctions } from 'n8n-workflow';
+import { IExecuteFunctions, ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
 import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class WslExec implements INodeType {
 	description: INodeTypeDescription = {
@@ -23,10 +26,12 @@ export class WslExec implements INodeType {
 			{
 				displayName: 'WSL2 Container',
 				name: 'wslContainer',
-				type: 'string',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getWslContainers',
+				},
 				default: '',
-				placeholder: 'e.g., Ubuntu-20.04',
-				description: 'The name of the WSL2 container to execute the command in',
+				description: 'Choose a WSL container or type a name. It will be automatically discovered.',
 				required: true,
 			},
 			{
@@ -52,7 +57,38 @@ export class WslExec implements INodeType {
 				default: '',
 				description: 'Arguments for the command, separated by spaces',
 			},
+			{
+				displayName: 'Ignore Startup Output',
+				name: 'ignoreStartupOutput',
+				type: 'boolean',
+				default: false,
+				description: 'Ignores output from shell startup scripts (e.g., .bashrc)',
+			},
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getWslContainers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				try {
+					// The --quiet flag removes the header, and we specify utf16le encoding for PowerShell
+					const { stdout } = await execAsync('wsl -l --quiet', { encoding: 'utf16le' });
+					const containers = stdout
+						.split('\n')
+						.map((line) => line.trim())
+						.filter((line) => line)
+						.map((name) => ({
+							name,
+							value: name,
+						}));
+					return containers;
+				} catch (error) {
+					// If WSL is not installed or an error occurs, return an empty list
+					this.logger.error(`Could not list WSL containers: ${error}`);
+					return [];
+				}
+			},
+		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -64,22 +100,27 @@ export class WslExec implements INodeType {
 			const startDirectory = this.getNodeParameter('startDirectory', i, '~/') as string;
 			const command = this.getNodeParameter('command', i, '') as string;
 			const args = this.getNodeParameter('args', i, '') as string;
+			const ignoreStartupOutput = this.getNodeParameter('ignoreStartupOutput', i, false) as boolean;
 
-			const fullCommand = `cd ${startDirectory} && ${command} ${args}`;
+			const START_MARKER = '---N8N_WSL_EXEC_START---';
+			const END_MARKER = '---N8N_WSL_EXEC_END---';
 
-			const wslProcess = spawn('wsl', ['-d', wslContainer, '-e', 'bash', '-ic', fullCommand]);
+			let commandToRun = `cd ${startDirectory} && ${command} ${args}`;
+			if (ignoreStartupOutput) {
+				commandToRun = `cd ${startDirectory} && echo "${START_MARKER}" && ${command} ${args}; echo "${END_MARKER}"`;
+			}
+
+			const wslProcess = spawn('wsl', ['-d', wslContainer, '-e', 'bash', '-ic', commandToRun]);
 
 			let stdout = '';
 			let stderr = '';
 
 			wslProcess.stdout.on('data', (data: Buffer) => {
 				stdout += data.toString();
-				// Not logging stdout to execution log by default to avoid clutter
 			});
 
 			wslProcess.stderr.on('data', (data: Buffer) => {
 				stderr += data.toString();
-				// Will be returned in the output
 			});
 
 			const exitCode = await new Promise<number>((resolve) => {
@@ -88,10 +129,19 @@ export class WslExec implements INodeType {
 				});
 			});
 
+			let finalStdout = stdout;
+			if (ignoreStartupOutput) {
+				const startIndex = stdout.indexOf(START_MARKER);
+				const endIndex = stdout.lastIndexOf(END_MARKER);
+				if (startIndex !== -1 && endIndex !== -1) {
+					finalStdout = stdout.substring(startIndex + START_MARKER.length, endIndex).trim();
+				}
+			}
+
 			returnData.push({
 				json: {
 					...items[i].json,
-					stdout,
+					stdout: finalStdout,
 					stderr,
 					exitCode,
 				},

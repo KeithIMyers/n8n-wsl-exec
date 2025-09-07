@@ -1,15 +1,17 @@
 {
   "name": "n8n-nodes-wsl-exec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A n8n node to execute commands in a WSL2 container from a Windows-based n8n instance.",
-  "main": "index.js",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
   "scripts": {
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
-    "format": "prettier --write nodes credentials",
-    "lint": "eslint nodes credentials --ext .js,.ts",
-    "lint:fix": "eslint nodes credentials --ext .js,.ts --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials"
+    "format": "prettier --write nodes",
+    "lint": "eslint nodes --ext .js,.ts",
+    "lint:fix": "eslint nodes --ext .js,.ts --fix",
+    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js"
   },
   "files": [
     "dist"
@@ -25,7 +27,9 @@
     "@types/express": "^4.17.6",
     "@types/node": "^24.3.1",
     "@types/request-promise-native": "~1.0.15",
+    "@typescript-eslint/eslint-plugin": "~5.45",
     "@typescript-eslint/parser": "~5.45",
+    "eslint": "^8.57.1",
     "eslint-plugin-n8n-nodes-base": "^1.11.0",
     "gulp": "^4.0.2",
     "n8n-core": "*",
@@ -38,5 +42,12 @@
     "n8n-workflow": "*"
   },
   "author": "Keith I Myers",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KeithIMyers/n8n-wsl-exec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KeithIMyers/n8n-wsl-exec/issues"
+  }
 }
