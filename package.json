@@ -1,9 +1,16 @@
 {
   "name": "n8n-nodes-wsl-exec",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "description": "A n8n node to execute commands in a WSL2 container from a Windows-based n8n instance.",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "n8n-community-node-package-wsl-exec",
+    "WSL2",
+    "wsl",
+    "windows",
+    "linux",
+    "wsl-exec",
+    "windows-subsystem-for-linux"
   ],
   "scripts": {
     "build": "tsc && gulp build:icons",

@@ -9,6 +9,8 @@ This community node for n8n allows you to execute commands within a Windows Subs
 -   Set a starting directory for your command.
 -   Provide arguments for your command.
 -   Stream stdout and stderr back to the n8n workflow.
+-   Ability to execute tasks under different users such as root, www-data, etc (leave blank for default user).
+-   Supports all WSL distros
 
 ## Installation
 
@@ -23,6 +25,11 @@ This community node for n8n allows you to execute commands within a Windows Subs
 -   **Command**: The command to execute (e.g., `ls`, `echo "Hello"`, `python3`).
 -   **Arguments**: Any arguments to pass to the command, separated by spaces (e.g., `-l -a`, `my_script.py --verbose`).
 -   **Ignore Startup Output**: If your `.bashrc` or other shell startup scripts produce output (like `neofetch`), enable this option to ignore it and only capture the output of the command itself.
+
+## Requirements
+
+-   Windows 10 or Windows 11 with n8n installed on the host machine. n8n should not be installed in a container
+-   Windows Subsystem For Linux (WSL/WSL2) Installed and at least one WSL instance setup
 
 ## Example Usage
 
